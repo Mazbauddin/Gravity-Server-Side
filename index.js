@@ -194,7 +194,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Hello from Gravity hello Server..");
+  res.send("Hello from Gravity Running Server..");
 });
 
 app.listen(port, () => {
