@@ -57,6 +57,7 @@ async function run() {
     const usersCollection = client.db("gravityDb").collection("users");
     const serviceCollection = client.db("gravityDb").collection("services");
     const workCollection = client.db("gravityDb").collection("employeeWork");
+    const contactUsCollection = client.db("gravityDb").collection("contactUs");
 
     // auth related api
     app.post("/jwt", async (req, res) => {
@@ -73,39 +74,52 @@ async function run() {
         .send({ success: true });
     });
     // Logout
-    app.get("/logout", async (req, res) => {
-      try {
-        res
-          .clearCookie("token", {
-            maxAge: 0,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          })
-          .send({ success: true });
-        console.log("Logout successful");
-      } catch (err) {
-        res.status(500).send(err);
-      }
-    });
+    // app.get("/logout", async (req, res) => {
+    //   try {
+    //     res
+    //       .clearCookie("token", {
+    //         maxAge: 0,
+    //         secure: process.env.NODE_ENV === "production",
+    //         sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    //       })
+    //       .send({ success: true });
+    //     console.log("Logout successful");
+    //   } catch (err) {
+    //     res.status(500).send(err);
+    //   }
+    // });
 
-    // save a user data in db
-    app.put("/user", async (req, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
-      const query = { email: user?.email };
-      // if user already exists in db
-      const isExist = await usersCollection.findOne(query);
-      if (isExist) return res.send(isExist);
-
-      const options = { upsert: true };
-
-      const updateDoc = {
-        $set: {
-          ...user,
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc, options);
+      // insert email if user doesn't exists:
+      // you can do this many ways (1. email unique, 2. upsert, 3. simple checking)
+      const query = { email: user.email };
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "user already exists", insertedId: null });
+      }
+      const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+    // // save a user data in db
+    // app.put("/user", async (req, res) => {
+    //   const user = req.body;
+    //   const query = { email: user?.email };
+    //   // if user already exists in db
+    //   const isExist = await usersCollection.findOne(query);
+    //   if (isExist) return res.send(isExist);
+
+    //   const options = { upsert: true };
+
+    //   const updateDoc = {
+    //     $set: {
+    //       ...user,
+    //     },
+    //   };
+    //   const result = await usersCollection.updateOne(query, updateDoc, options);
+    //   res.send(result);
+    // });
 
     // get a user info by email from db
     app.get("/user/:email", async (req, res) => {
@@ -150,7 +164,7 @@ async function run() {
 
     // Hr related work employee list
     app.get("/users/employee/:email", async (req, res) => {
-      const query = { role: "employee" };
+      const query = { role: "Employee" };
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     });
@@ -186,6 +200,13 @@ async function run() {
     app.post("/employeeWork", async (req, res) => {
       const workData = req.body;
       const result = await workCollection.insertOne(workData);
+      res.send(result);
+    });
+
+    // contact us save in db
+    app.post("/contactUs", async (req, res) => {
+      const contactData = req.body;
+      const result = await contactUsCollection.insertOne(contactData);
       res.send(result);
     });
 
