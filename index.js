@@ -169,7 +169,7 @@ async function run() {
       res.send(result);
     });
 
-    // isVarified
+    // isVerified
     app.put("/users/verified/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -182,19 +182,14 @@ async function run() {
       res.send(result);
     });
 
-    //service provide from db
-    app.get("/services", async (req, res) => {
-      const result = await serviceCollection.find().toArray();
+    // contact us save in db
+    app.post("/contactUs", async (req, res) => {
+      const contactData = req.body;
+      const result = await contactUsCollection.insertOne(contactData);
       res.send(result);
     });
 
-    // service provide single data
-    app.get("/service/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await serviceCollection.findOne(query);
-      res.send(result);
-    });
+    // Employee Work here
 
     // Employee Work save in db
     app.post("/employeeWork", async (req, res) => {
@@ -203,17 +198,24 @@ async function run() {
       res.send(result);
     });
 
-    // contact us save in db
-    app.post("/contactUs", async (req, res) => {
-      const contactData = req.body;
-      const result = await contactUsCollection.insertOne(contactData);
-      res.send(result);
-    });
-
     app.get("/employeeWorks/:email", async (req, res) => {
       const email = req.params.email;
       let query = { "employee.email": email };
       const result = await workCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //service provide from save in db
+    app.get("/services", async (req, res) => {
+      const result = await serviceCollection.find().toArray();
+      res.send(result);
+    });
+
+    // service provide single data get
+    app.get("/service/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await serviceCollection.findOne(query);
       res.send(result);
     });
 
