@@ -150,7 +150,21 @@ async function run() {
 
     // Hr related work employee list
     app.get("/users/employee/:email", async (req, res) => {
-      const result = await usersCollection.find().toArray();
+      const query = { role: "employee" };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // isVarified
+    app.put("/users/verified/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: "isVerified",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
@@ -194,7 +208,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Hello from Gravity Running Server..");
+  res.send("Hello from Gravity hello from Server..");
 });
 
 app.listen(port, () => {
