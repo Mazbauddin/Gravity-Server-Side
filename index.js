@@ -59,6 +59,27 @@ async function run() {
     const workCollection = client.db("gravityDb").collection("employeeWork");
     const contactUsCollection = client.db("gravityDb").collection("contactUs");
 
+    // verify admin middleware
+    const verifyAdmin = async (req, res, next) => {
+      const user = req.user;
+      const query = { email: user?.email };
+      const result = await usersCollection.findOne(query);
+      if (!result || result?.role !== "admin")
+        return res.status(401).send({ message: "unauthorized access!!" });
+
+      next();
+    };
+    // verify HR middleware
+    const verifyHR = async (req, res, next) => {
+      const user = req.user;
+      const query = { email: user?.email };
+      const result = await usersCollection.findOne(query);
+      if (!result || result?.role !== "HR")
+        return res.status(401).send({ message: "unauthorized access!!" });
+
+      next();
+    };
+
     // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -129,28 +150,33 @@ async function run() {
     });
 
     // get all users data from db
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
     // update a user role
-    app.patch("/users/update/:email", async (req, res) => {
-      const email = req.params.email;
-      const user = req.body;
-      const query = { email };
-      const updateDoc = {
-        $set: {
-          ...user,
-          timestamp: Date.now(),
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/users/update/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const user = req.body;
+        const query = { email };
+        const updateDoc = {
+          $set: {
+            ...user,
+            timestamp: Date.now(),
+          },
+        };
+        const result = await usersCollection.updateOne(query, updateDoc);
+        res.send(result);
+      }
+    );
 
     //Admin Work users fired
-    app.put("/users/fire/:id", async (req, res) => {
+    app.put("/users/fire/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -163,14 +189,19 @@ async function run() {
     });
 
     // Hr related work employee list
-    app.get("/users/employee/:email", async (req, res) => {
-      const query = { role: "Employee" };
-      const result = await usersCollection.find(query).toArray();
-      res.send(result);
-    });
+    app.get(
+      "/users/employee/:email",
+      verifyToken,
+      verifyHR,
+      async (req, res) => {
+        const query = { role: "Employee" };
+        const result = await usersCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
     // isVerified
-    app.put("/users/verified/:id", async (req, res) => {
+    app.put("/users/verified/:id", verifyToken, verifyHR, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
