@@ -29,7 +29,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 // Verify Token Middleware
 const verifyToken = async (req, res, next) => {
   const token = req.cookies?.token;
-  console.log(token);
+
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
@@ -69,6 +69,7 @@ async function run() {
 
       next();
     };
+
     // verify HR middleware
     const verifyHR = async (req, res, next) => {
       const user = req.user;
@@ -94,6 +95,7 @@ async function run() {
         })
         .send({ success: true });
     });
+
     // Logout
     // app.get("/logout", async (req, res) => {
     //   try {
@@ -188,6 +190,7 @@ async function run() {
       res.send(result);
     });
 
+    // Hr related work here
     // Hr related work employee list
     app.get(
       "/users/employee/:email",
@@ -220,6 +223,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/visitorsFeedback", async (req, res) => {
+      const result = await contactUsCollection.find().toArray();
+      res.send(result);
+    });
+
     // Employee Work here
 
     // Employee Work save in db
@@ -247,6 +255,14 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await serviceCollection.findOne(query);
+      res.send(result);
+    });
+
+    // single Employee Details
+    app.get("/singleEmployee/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.findOne(query);
       res.send(result);
     });
 
