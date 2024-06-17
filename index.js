@@ -10,16 +10,30 @@ const {
   Timestamp,
 } = require("mongodb");
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const port = process.env.PORT || 5000;
 
 // middleware
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:5174"],
+  origin: [
+    "https://gravity-96df3.web.app",
+    "http://localhost:5173",
+    "http://localhost:5174",
+  ],
   credentials: true,
   optionSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "DELETE, PUT, GET, POST, PATCH");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 
 app.use(express.json());
 app.use(cookieParser());
@@ -90,6 +104,8 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
+          // secure: false,
+          // sameSite: "none",
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
@@ -111,6 +127,25 @@ async function run() {
     //     res.status(500).send(err);
     //   }
     // });
+
+    // Stripe create-payment-intent
+    app.post("/create-payment-intent", verifyToken, async (req, res) => {
+      const salary = req.body.salary;
+      const salaryInCent = parseFloat(salary) * 100;
+      if (!salary || salaryInCent < 1) return;
+      // generate clientSecret
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: salaryInCent,
+        currency: "usd",
+        // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      // send client secret as response
+      res.send({ clientSecret: client_secret });
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -216,6 +251,14 @@ async function run() {
       res.send(result);
     });
 
+    // single Employee Details
+    app.get("/singleEmployee/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    });
+
     // contact us save in db
     app.post("/contactUs", async (req, res) => {
       const contactData = req.body;
@@ -258,19 +301,11 @@ async function run() {
       res.send(result);
     });
 
-    // single Employee Details
-    app.get("/singleEmployee/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await usersCollection.findOne(query);
-      res.send(result);
-    });
-
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
   }
